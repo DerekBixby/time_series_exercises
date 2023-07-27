@@ -1,5 +1,7 @@
 import os
 import math
+import pandas as pd
+from env import get_db_url
 from pprint import pprint
 
 base_url = "https://swapi.dev/api/"
@@ -44,10 +46,10 @@ def get_ships():
     ships_url = base_url + "starships/"
 
     while data['next'] != None:
-    print(data['next'])
-    response = requests.get(data['next'])
-    data = response.json()
-    starships_df = pd.concat([starships_df, pd.DataFrame(data['results'])], ignore_index=True)
+        print(data['next'])
+        response = requests.get(data['next'])
+        data = response.json()
+        starships_df = pd.concat([starships_df, pd.DataFrame(data['results'])], ignore_index=True)
 
 
 def get_swapi_data(endpoint):
@@ -87,7 +89,62 @@ def swapi_merge():
         how='left', suffixes=['_ppl_plnt', '_ships'])
     return ppl_planet_ship_df
 
-def get_germant(): 
+def get_germany(): 
     germany = pd.read_csv("https://raw.githubusercontent.com/jenfly/opsd/master/opsd_germany_daily.csv")
 
     return germany
+
+def new_store_data():
+    '''
+    This reads the store data from the Codeup db into a df
+    '''
+    sql_query = """
+                SELECT * FROM sales
+                JOIN items ON sales.item_id = items.item_id
+                JOIN stores ON sales.store_id = stores.store_id;
+                """
+    
+    # Read in DataFrame from Codeup.
+    df = pd.read_sql(sql_query, get_db_url('tsa_item_demand'))
+    
+    return df
+
+def get_store_data():
+    '''
+    This reads in store data from Codeup database, writes data to
+    a csv if a local file does not exist, and returns a df.
+    '''
+    if os.path.isfile('store.csv'):
+        
+        # read in data from csv file if one exists
+        df = pd.read_csv('store.csv', index_col=0)
+        
+    else:
+        
+        # Read data from db into a DataFrame
+        df = new_store_data()
+        
+        # Cache to .csv
+        df.to_csv('store.csv')
+        
+    return df
+
+    def get_germany():
+    '''
+    This reads in electricity data from the file's website, writes data to
+    a csv if a local file does not exist, and returns a df.
+    '''
+    if os.path.isfile('germany.csv'):
+        
+        # read in data from csv file if one exists
+        df = pd.read_csv('germany.csv', index_col=0)
+        
+    else:
+        
+        # Read data from db into a DataFrame
+        df = pd.read_csv("https://raw.githubusercontent.com/jenfly/opsd/master/opsd_germany_daily.csv")
+        
+        # Cache to .csv
+        df.to_csv('germany.csv')
+        
+    return df
